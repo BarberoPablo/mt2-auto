@@ -6,66 +6,87 @@ import sys
 import pyautogui
 import time
 
-# Finding tesseract
+# === CONFIGURACIÓN ===
 pytesseract.pytesseract.tesseract_cmd = r'C:\Pablo\Programacion\metin2\metins\tesseract\tesseract.exe'
-
-# Client clicker on C#
 metin_clicker_exe = r'C:\Pablo\Programacion\metin2\metins\MetinClicker\bin\Debug\net8.0\MetinClicker.exe'
+window_title = 'Elveron'
 
-# Finding window of the game
-window_title = 'Elveron'  # Change this if your window has another name
-windows = gw.getWindowsWithTitle(window_title)
-if not windows:
-    print(f"❌ Window '{window_title}' not found")
-    sys.exit()
-win = windows[0]
 
-# Capture only the window of the game
-bbox = (win.left, win.top, win.right, win.bottom)
-screenshot = ImageGrab.grab(bbox=bbox)
+# === FUNCIONES BASE ===
 
-# Get data of each detected word
-data = pytesseract.image_to_data(screenshot, output_type=pytesseract.Output.DICT)
+def run_metin_clicker(*args):
+    """Ejecuta el .exe MetinClicker con los argumentos dados."""
+    try:
+        result = subprocess.run(
+            [metin_clicker_exe, *map(str, args)],
+            capture_output=True,
+            text=True,
+            shell=False
+        )
+        if result.stdout.strip():
+            print("stdout:", result.stdout.strip())
+        if result.stderr.strip():
+            print("stderr:", result.stderr.strip())
+    except Exception as e:
+        print(f"⚠️ Error ejecutando MetinClicker: {e}")
 
-click_sent = False
 
-# Iterate through detected words and search for "metin"
-for i, word in enumerate(data['text']):
-    if 'metin' in word.lower():
-        # Coordinates inside the screenshot
-        x = data['left'][i] + data['width'][i] // 2 + 30
-        y = data['top'][i] + data['height'][i] + 30  # un poco debajo del texto
+def focus_window():
+    """Hace foco en la ventana del juego."""
+    print(f"→ Haciendo foco en la ventana '{window_title}'...")
+    run_metin_clicker("focus", window_title)
 
-        # Convert relative coordinates to screen
-        screen_x = win.left + x
-        screen_y = win.top + y
 
-        print(f"'Metin' encontrado en: x={screen_x}, y={screen_y}")
-        click_sent = True
+def click_metin():
+    """Detecta la palabra 'metin' en la ventana del juego y hace click en ella."""
+    print("→ Buscando ventana del juego...")
+    windows = gw.getWindowsWithTitle(window_title)
+    if not windows:
+        print(f"❌ Ventana '{window_title}' no encontrada")
+        return
 
-        # Move the cursor to the detected coordinates
-        print(f"Moviendo cursor a: x={screen_x}, y={screen_y}")
-        pyautogui.moveTo(screen_x, screen_y, duration=0.1)
-        
-        # Small pause to ensure the cursor has moved
-        time.sleep(0.05)
+    win = windows[0]
 
-        # Execute MetinClicker with the coordinates and the window title
-        # The .exe will now click in the position where the cursor is (that we just moved)
-        try:
-            result = subprocess.run(
-                [metin_clicker_exe, str(screen_x), str(screen_y), window_title],
-                capture_output=True,
-                text=True,
-                shell=False
-            )
-            print("stdout:", result.stdout)
-            if result.stderr:
-                print("stderr:", result.stderr)
-        except Exception as e:
-            print(f"Error executing MetinClicker: {e}")
+    # Capturamos la zona visible del juego
+    bbox = (win.left, win.top, win.right, win.bottom)
+    screenshot = ImageGrab.grab(bbox=bbox)
 
-        break  # Just one click, exit the loop
+    # OCR con pytesseract
+    data = pytesseract.image_to_data(screenshot, output_type=pytesseract.Output.DICT)
 
-if not click_sent:
-    print("❌ No 'Metin' found in the window.")
+    for i, word in enumerate(data['text']):
+        if 'metin' in word.lower():
+            # Calculamos coordenadas relativas y absolutas
+            x = data['left'][i] + data['width'][i] // 2 + 30
+            y = data['top'][i] + data['height'][i] + 30
+            screen_x = win.left + x
+            screen_y = win.top + y
+
+            print(f"✅ 'Metin' encontrado en: x={screen_x}, y={screen_y}")
+
+            # Mover el cursor
+            pyautogui.moveTo(screen_x, screen_y, duration=0.1)
+            time.sleep(0.05)
+
+            # Ejecutar click mediante el .exe
+            run_metin_clicker("click", screen_x, screen_y, window_title)
+            return
+
+    print("❌ No se encontró ningún 'Metin' en la ventana.")
+
+
+# === MAIN ===
+
+def main():
+    """Ejecución principal: foco + click una sola vez."""
+    print("Iniciando búsqueda y click de Metin...\n")
+
+    focus_window()
+    time.sleep(0.3)  # pequeño delay para asegurar el foco
+    click_metin()
+
+    print("\nEjecución terminada (loop simple).")
+
+
+if __name__ == "__main__":
+    main()
