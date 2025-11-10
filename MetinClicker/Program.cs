@@ -1,11 +1,17 @@
 ﻿using System;
 using System.Runtime.InteropServices;
+using System.Threading;
 
 class Program
 {
     const int WM_LBUTTONDOWN = 0x0201;
     const int WM_LBUTTONUP = 0x0202;
     const int MK_LBUTTON = 0x0001;
+
+    const int SW_RESTORE = 9;
+    const uint SWP_NOSIZE = 0x0001;
+    const uint SWP_NOMOVE = 0x0002;
+    const uint SWP_SHOWWINDOW = 0x0040;
 
     [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Auto)]
     static extern IntPtr FindWindow(string? lpClassName, string? lpWindowName);
@@ -15,6 +21,24 @@ class Program
 
     [DllImport("user32.dll")]
     static extern bool ScreenToClient(IntPtr hWnd, ref POINT lpPoint);
+
+    [DllImport("user32.dll")]
+    static extern bool SetForegroundWindow(IntPtr hWnd);
+
+    [DllImport("user32.dll")]
+    static extern bool BringWindowToTop(IntPtr hWnd);
+
+    [DllImport("user32.dll")]
+    static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+
+    [DllImport("user32.dll")]
+    static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
+
+    [DllImport("kernel32.dll")]
+    static extern uint GetCurrentThreadId();
+
+    [DllImport("user32.dll")]
+    static extern bool AttachThreadInput(uint idAttach, uint idAttachTo, bool fAttach);
 
     [StructLayout(LayoutKind.Sequential)]
     struct POINT
@@ -38,7 +62,6 @@ class Program
             return;
         }
 
-        // Window title is optional, defaults to "Elveron" for backwards compatibility
         string windowTitle = args.Length >= 3 ? args[2] : "Elveron";
 
         Console.WriteLine($"Buscando ventana '{windowTitle}'...");
@@ -53,23 +76,61 @@ class Program
 
         Console.WriteLine("✅ Ventana encontrada!");
 
+        // Focusing the window
+        try
+        {
+            // Restore (si está minimizada)
+            ShowWindow(hWnd, SW_RESTORE);
+
+            // Traer al frente usando AttachThreadInput para saltar restricciones de foreground window
+            uint windowThreadId = GetWindowThreadProcessId(hWnd, out _);
+            uint currentThreadId = GetCurrentThreadId();
+
+            bool attached = false;
+            if (windowThreadId != currentThreadId)
+            {
+                attached = AttachThreadInput(currentThreadId, windowThreadId, true);
+            }
+
+            // Intentos para asegurar que la ventana queda en foreground
+            if (!SetForegroundWindow(hWnd))
+            {
+                Console.WriteLine("⚠️ SetForegroundWindow falló en el primer intento, intentando BringWindowToTop...");
+                BringWindowToTop(hWnd);
+                SetForegroundWindow(hWnd);
+            }
+
+            // Desprender AttachThreadInput si se había unido
+            if (attached)
+            {
+                AttachThreadInput(currentThreadId, windowThreadId, false);
+            }
+
+            // Pequeña pausa para que Windows actualice el foco/estado
+            Thread.Sleep(80);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("⚠️ Error al intentar dar foco a la ventana: " + ex.Message);
+            // seguimos de todas formas, el resto del flujo intentará mandar mensajes
+        }
+
         // Convert screen coordinates to client coordinates (relative to the window)
         POINT point = new POINT { X = screenX, Y = screenY };
-        ScreenToClient(hWnd, ref point);
+        if (!ScreenToClient(hWnd, ref point))
+        {
+            Console.WriteLine("⚠️ ScreenToClient devolvió false. Las coordenadas pueden ser inválidas.");
+        }
 
         int clientX = point.X;
         int clientY = point.Y;
 
-        // lParam format: low word = X, high word = Y
         IntPtr lParam = (IntPtr)((clientY << 16) | (clientX & 0xFFFF));
 
-        // Send mouse down message
         bool downSuccess = PostMessage(hWnd, WM_LBUTTONDOWN, (IntPtr)MK_LBUTTON, lParam);
-        
-        // Small delay to simulate a real click
-        System.Threading.Thread.Sleep(10);
-        
-        // Send mouse up message
+
+        Thread.Sleep(10);
+
         bool upSuccess = PostMessage(hWnd, WM_LBUTTONUP, IntPtr.Zero, lParam);
 
         if (downSuccess && upSuccess)
@@ -82,156 +143,3 @@ class Program
         }
     }
 }
-
-
-
-
-
-
-
-/* Mouse moving to coords correctly 
-
-using System;
-using System.Runtime.InteropServices;
-
-class Program
-{
-    [StructLayout(LayoutKind.Sequential)]
-    struct INPUT
-    {
-        public int type;
-        public MOUSEINPUT mi;
-    }
-
-    [StructLayout(LayoutKind.Sequential)]
-    struct MOUSEINPUT
-    {
-        public int dx;
-        public int dy;
-        public uint mouseData;
-        public uint dwFlags;
-        public uint time;
-        public IntPtr dwExtraInfo;
-    }
-
-    const int INPUT_MOUSE = 0;
-    const uint MOUSEEVENTF_MOVE = 0x0001;
-    const uint MOUSEEVENTF_ABSOLUTE = 0x8000;
-    const uint MOUSEEVENTF_LEFTDOWN = 0x0002;
-    const uint MOUSEEVENTF_LEFTUP = 0x0004;
-
-    [DllImport("user32.dll")]
-    static extern uint SendInput(uint nInputs, INPUT[] pInputs, int cbSize);
-
-    [DllImport("user32.dll")]
-    static extern int GetSystemMetrics(int nIndex);
-    const int SM_CXSCREEN = 0;
-    const int SM_CYSCREEN = 1;
-
-    static void Main(string[] args)
-    {
-        if (args.Length < 2)
-        {
-            Console.WriteLine("Uso: MetinClicker.exe <x> <y>");
-            return;
-        }
-
-        if (!int.TryParse(args[0], out int screenX) || !int.TryParse(args[1], out int screenY))
-        {
-            Console.WriteLine("Coordenadas inválidas.");
-            return;
-        }
-
-        int screenWidth = GetSystemMetrics(SM_CXSCREEN);
-        int screenHeight = GetSystemMetrics(SM_CYSCREEN);
-
-        int absoluteX = (int)(screenX * 65535 / (double)screenWidth);
-        int absoluteY = (int)(screenY * 65535 / (double)screenHeight);
-
-        INPUT[] inputs = new INPUT[2];
-
-        inputs[0] = new INPUT
-        {
-            type = INPUT_MOUSE,
-            mi = new MOUSEINPUT
-            {
-                dx = absoluteX,
-                dy = absoluteY,
-                dwFlags = MOUSEEVENTF_ABSOLUTE | MOUSEEVENTF_MOVE | MOUSEEVENTF_LEFTDOWN,
-                mouseData = 0,
-                time = 0,
-                dwExtraInfo = IntPtr.Zero
-            }
-        };
-
-        inputs[1] = new INPUT
-        {
-            type = INPUT_MOUSE,
-            mi = new MOUSEINPUT
-            {
-                dx = absoluteX,
-                dy = absoluteY,
-                dwFlags = MOUSEEVENTF_ABSOLUTE | MOUSEEVENTF_MOVE | MOUSEEVENTF_LEFTUP,
-                mouseData = 0,
-                time = 0,
-                dwExtraInfo = IntPtr.Zero
-            }
-        };
-
-        SendInput((uint)inputs.Length, inputs, Marshal.SizeOf(typeof(INPUT)));
-
-        Console.WriteLine($"✔️ Clic enviado en x={screenX}, y={screenY}!");
-    }
-}
-*/
-
-
-
-/* #Working .exe alone code
-using System;
-using System.Runtime.InteropServices;
-using System.Threading;
-
-class Program
-{
-    const int WM_LBUTTONDOWN = 0x0201;
-    const int WM_LBUTTONUP = 0x0202;
-    const int MK_LBUTTON = 0x0001;
-
-    [DllImport("user32.dll", SetLastError = true)]
-    static extern IntPtr FindWindow(string lpClassName, string lpWindowName);
-
-    [DllImport("user32.dll")]
-    static extern bool PostMessage(IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam);
-
-    static void Main()
-    {
-        Console.WriteLine("Buscando ventana de Elveron...");
-        // ⚠️ Asegurate que el título de la ventana coincida con el que ves en la barra superior
-        IntPtr hWnd = FindWindow(null, "Elveron");
-
-        if (hWnd == IntPtr.Zero)
-        {
-            Console.WriteLine("❌ No se encontró la ventana del juego.");
-            Console.ReadLine();
-            return;
-        }
-
-        Console.WriteLine("✅ Ventana encontrada!");
-        Console.WriteLine("Esperando 3 segundos...");
-        Thread.Sleep(3000);
-
-        // Simula clic en el centro de la pantalla (x=500, y=400 por ejemplo)
-        int x = 500;
-        int y = 400;
-
-        IntPtr lParam = (IntPtr)((y << 16) | (x & 0xFFFF));
-
-        PostMessage(hWnd, WM_LBUTTONDOWN, (IntPtr)MK_LBUTTON, lParam);
-        PostMessage(hWnd, WM_LBUTTONUP, IntPtr.Zero, lParam);
-
-        Console.WriteLine("✔️ Clic enviado a la ventana!");
-        Console.ReadLine();
-    }
-}
- */
