@@ -148,6 +148,40 @@ class Program
             Console.WriteLine("✔️ Click completo en la posición actual del OSK.");
     }
 
+    static void HoldClickMouseOSK(double durationSec)
+    {
+        // DOWN Event
+        INPUT down = new INPUT();
+        down.type = INPUT_MOUSE;
+        down.u.mi = new MOUSEINPUT { dwFlags = MOUSEEVENTF_LEFTDOWN };
+
+        // Send DOWN event
+        uint resultDown = SendInput(1, new INPUT[] { down }, Marshal.SizeOf(typeof(INPUT)));
+        if (resultDown == 0)
+        {
+            Console.WriteLine("❌ Error al enviar el DOWN del click.");
+            return;
+        }
+
+        // Espera en ms (convierte double -> int ms)
+        int ms = (int)(durationSec * 1000);
+        if (ms < 1) ms = 1;
+        Console.WriteLine($"⏱️ Hold OSK mouse for {durationSec:F2}s ({ms}ms)");
+        Thread.Sleep(ms);
+
+        // UP Event
+        INPUT up = new INPUT();
+        up.type = INPUT_MOUSE;
+        up.u.mi = new MOUSEINPUT { dwFlags = MOUSEEVENTF_LEFTUP };
+
+        // Send UP event
+        uint resultUp = SendInput(1, new INPUT[] { up }, Marshal.SizeOf(typeof(INPUT)));
+        if (resultUp == 0)
+            Console.WriteLine("❌ Error al enviar el UP del click.");
+        else
+            Console.WriteLine("✔️ Click completo en la posición actual del OSK.");
+    }
+
 
     // === Main ===
     static void Main(string[] args)
@@ -184,6 +218,15 @@ class Program
                 break;
             case "osk_click":
                 ClickMouseOSK();
+                break;
+            case "osk_hold_click":
+                if (args.Length < 2) { Console.WriteLine("❌ Uso: osk_hold_click <seconds>"); return; }
+                if (!double.TryParse(args[1], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double durationSec) || durationSec <= 0)
+                    {
+                        Console.WriteLine("❌ Valor inválido para segundos.");
+                        return;
+                    }
+                HoldClickMouseOSK(durationSec);
                 break;
             default:
                 Console.WriteLine($"❌ Comando desconocido: {command}");

@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Interactions")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+43c08ad9db8a8357053de8bffb55247c708ab04c")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+f76249376fa9ec9bdb5bbae1928d73baeac34bae")]
 [assembly: System.Reflection.AssemblyProductAttribute("Interactions")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Interactions")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
