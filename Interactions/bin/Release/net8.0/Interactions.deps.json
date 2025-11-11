@@ -6,15 +6,15 @@
   "compilationOptions": {},
   "targets": {
     ".NETCoreApp,Version=v8.0": {
-      "OKSClicker/1.0.0": {
+      "Interactions/1.0.0": {
         "runtime": {
-          "OKSClicker.dll": {}
+          "Interactions.dll": {}
         }
       }
     }
   },
   "libraries": {
-    "OKSClicker/1.0.0": {
+    "Interactions/1.0.0": {
       "type": "project",
       "serviceable": false,
       "sha512": ""
