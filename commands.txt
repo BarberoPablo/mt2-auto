@@ -1,3 +1,6 @@
 source venv/Scripts/activate
 cd MetinClicker
-dotnet build
+dotnet build -c Release
+
+To create .exe:
+dotnet new console -n OKSClicker
