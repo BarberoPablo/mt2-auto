@@ -12,6 +12,11 @@ class Program
     const uint INPUT_MOUSE = 0;
     const uint MOUSEEVENTF_LEFTDOWN = 0x0002;
     const uint MOUSEEVENTF_LEFTUP = 0x0004;
+    const int WM_RBUTTONDOWN = 0x0204;
+    const int WM_RBUTTONUP = 0x0205;
+    const int MK_RBUTTON = 0x0002;
+    const uint MOUSEEVENTF_RIGHTDOWN = 0x0008;
+    const uint MOUSEEVENTF_RIGHTUP = 0x0010;
 
     // === Win32 Imports ===
     [DllImport("user32.dll")] static extern bool SetForegroundWindow(IntPtr hWnd);
@@ -88,6 +93,22 @@ class Program
         Console.WriteLine($"✔️ Click enviado en ({screenX},{screenY}) en '{title}'.");
     }
 
+    static void ClickRightInWindow(string title, int screenX, int screenY)
+    {
+        IntPtr hWnd = FindWindow(null, title);
+        if (hWnd == IntPtr.Zero) { Console.WriteLine($"❌ No se encontró la ventana '{title}'"); return; }
+
+        POINT pt = new POINT { X = screenX, Y = screenY };
+        ScreenToClient(hWnd, ref pt);
+        IntPtr lParam = (IntPtr)((pt.Y << 16) | (pt.X & 0xFFFF));
+
+        PostMessage(hWnd, WM_RBUTTONDOWN, (IntPtr)MK_RBUTTON, lParam);
+        Thread.Sleep(10);
+        PostMessage(hWnd, WM_RBUTTONUP, IntPtr.Zero, lParam);
+
+        Console.WriteLine($"✔️ Click derecho enviado en ({screenX},{screenY}) en '{title}'.");
+    }
+
     static void ClickCurrentPosition()
     {
         INPUT[] inputs = new INPUT[2];
@@ -146,7 +167,21 @@ class Program
                 if (!int.TryParse(args[1], out int x) || !int.TryParse(args[2], out int y)) { Console.WriteLine("❌ Coordenadas inválidas."); return; }
                 string clickTitle = args.Length >= 4 ? args[3] : null;
                 if (clickTitle != null) ClickInWindow(clickTitle, x, y);
-                else ClickCurrentPosition(); // Mantener compatibilidad
+                else ClickCurrentPosition();
+                break;
+            case "click_right":
+                if (args.Length < 3) { Console.WriteLine("❌ Uso: click_right <x> <y> [window_title]"); return; }
+                if (!int.TryParse(args[1], out int rx) || !int.TryParse(args[2], out int ry)) { Console.WriteLine("❌ Coordenadas inválidas."); return; }
+                string rightTitle = args.Length >= 4 ? args[3] : null;
+                if (rightTitle != null) ClickRightInWindow(rightTitle, rx, ry);
+                else
+                {
+                    INPUT[] inputs = new INPUT[2];
+                    inputs[0].type = INPUT_MOUSE; inputs[0].u.mi.dwFlags = MOUSEEVENTF_RIGHTDOWN;
+                    inputs[1].type = INPUT_MOUSE; inputs[1].u.mi.dwFlags = MOUSEEVENTF_RIGHTUP;
+                    SendInput((uint)inputs.Length, inputs, Marshal.SizeOf(typeof(INPUT)));
+                    Console.WriteLine("✔️ Click derecho en la posición actual del mouse.");
+                }
                 break;
             case "osk_click":
                 ClickMouseOSK();
