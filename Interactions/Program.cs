@@ -120,17 +120,17 @@ class Program
 
     static void ClickMouseOSK()
     {
-        // Evento DOWN
+        // DOWN Event
         INPUT down = new INPUT();
         down.type = INPUT_MOUSE;
         down.u.mi = new MOUSEINPUT { dwFlags = MOUSEEVENTF_LEFTDOWN };
 
-        // Evento UP
+        // UP Event
         INPUT up = new INPUT();
         up.type = INPUT_MOUSE;
         up.u.mi = new MOUSEINPUT { dwFlags = MOUSEEVENTF_LEFTUP };
 
-        // Enviar DOWN
+        // Send DOWN event
         uint resultDown = SendInput(1, new INPUT[] { down }, Marshal.SizeOf(typeof(INPUT)));
         if (resultDown == 0)
         {
@@ -138,10 +138,9 @@ class Program
             return;
         }
 
-        // Espera mínima para que la app detecte la pulsación
-        Thread.Sleep(50); // 50ms es suficiente
+        Thread.Sleep(50);
 
-        // Enviar UP
+        // Send UP event
         uint resultUp = SendInput(1, new INPUT[] { up }, Marshal.SizeOf(typeof(INPUT)));
         if (resultUp == 0)
             Console.WriteLine("❌ Error al enviar el UP del click.");

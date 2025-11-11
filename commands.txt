@@ -2,7 +2,7 @@ source venv/Scripts/activate
 cd MetinClicker
 dotnet build -c Release
 
-To create .exe:
+To create Program.cs folder:
 dotnet new console -n OKSClicker
 
 Parser:
