@@ -156,7 +156,6 @@ def find_and_click_metin(title=default_window):
         else:
             osk_tap_keyboard("z")
             check_forward = not check_forward
-            #rotate_camera(180)
             move_backward(1)
 
     print(f"❌ No se encontró ningún 'metin' tras {max_attempts} intentos.")
@@ -182,6 +181,7 @@ def sell_items(timer, lapse):
         # pyautogui.moveTo(1820, 885, 0.05)  # Sell items
         click_at(1820, 860)
         osk_tap_keyboard("f4")
+        osk_tap_keyboard("i")
         timer = now
 
     return timer
@@ -292,11 +292,11 @@ if __name__ == "__main__":
     while True:
         print("=== While loop X ===")
         skill_timer, first_skills = check_timer(
-            skill_timer, skills, 60*19, True, first_skills
+            skill_timer, skills, 60 * 19, True, first_skills
         )
         find_and_click_metin()
         time.sleep(0.5)
 
-        sell_timer = sell_items(sell_timer, 60*3)
+        sell_timer = sell_items(sell_timer, 60 * 3)
 
         time.sleep(5.03)
