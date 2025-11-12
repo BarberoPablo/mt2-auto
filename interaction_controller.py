@@ -7,6 +7,7 @@ import time
 from pathlib import Path
 import random
 import keyboard
+import math
 
 # === CONFIG ===
 pytesseract.pytesseract.tesseract_cmd = (
@@ -70,22 +71,24 @@ def run_clicker(
     return result.returncode == 0
 
 
-def focus_window(title=default_window):
-    print(f"[+] Focuseando ventana '{title}'...")
-    run_clicker("focus", title)
+def focus_window():
+    print(f"[+] Focuseando ventana '{default_window}'...")
+    run_clicker("focus", default_window)
 
 
-def click_at(x, y, title=default_window):
-    args = ["click", x, y]
-    if title:
-        args.append(title)
-    run_clicker(*args)
+def click_at(
+    x,
+    y,
+):
+    run_clicker("click", x, y, default_window)
 
 
-def right_click_at(x, y, title=default_window):
+def right_click_at(
+    x,
+    y,
+):
     args = ["click_right", x, y]
-    if title:
-        args.append(title)
+    args.append(default_window)
     run_clicker(*args)
 
 
@@ -103,13 +106,13 @@ def osk_hold_click_mouse(duration):
 
 
 # === Generic Functions ===
-def find_and_click_metin(title=default_window):
+def find_and_click_metin():
     max_attempts = 4
     print("[+] Buscando 'metin'...")
 
-    windows = gw.getWindowsWithTitle(title)
+    windows = gw.getWindowsWithTitle(default_window)
     if not windows:
-        print(f"❌ Ventana '{title}' no encontrada")
+        print(f"❌ Ventana '{default_window}' no encontrada")
         return False
 
     win = windows[0]
@@ -159,6 +162,79 @@ def find_and_click_metin(title=default_window):
             move_backward(1)
 
     print(f"❌ No se encontró ningún 'metin' tras {max_attempts} intentos.")
+    return False
+
+
+def find_and_click_nearest_metin():
+    max_attempts = 4
+    print("[+] Buscando 'metin'...")
+
+    windows = gw.getWindowsWithTitle(default_window)
+    if not windows:
+        print(f"❌ Ventana '{default_window}' no encontrada")
+        return False
+
+    win = windows[0]
+    bbox = (win.left, win.top, win.right, win.bottom)
+    check_forward = True
+
+    player_x, player_y = 960, 530  # Screen center
+
+    for attempt in range(max_attempts):
+        screenshot = ImageGrab.grab(bbox=bbox)
+        data = pytesseract.image_to_data(
+            screenshot, output_type=pytesseract.Output.DICT
+        )
+
+        # --- Metin UI detected
+        metin_ui_detected = False
+        for i, word in enumerate(data["text"]):
+            if "metin" in word.lower():
+                x = win.left + data["left"][i] + data["width"][i] // 2 + 30
+                y = win.top + data["top"][i] + data["height"][i] // 2 + 30
+                if 880 < x < 920 and 80 < y < 95:
+                    metin_ui_detected = True
+                    break
+
+        if metin_ui_detected:
+            print("⚠️ Ya estás destruyendo un metin (detectado en la UI).")
+            return True
+
+        closest_metin = None
+        min_distance = float("inf")
+
+        for i, word in enumerate(data["text"]):
+            if "metin" in word.lower():
+                x = win.left + data["left"][i] + data["width"][i] // 2 + 30
+                y = win.top + data["top"][i] + data["height"][i] + 30
+
+                dist = math.sqrt((x - player_x) ** 2 + (y - player_y) ** 2)
+
+                if dist < min_distance:
+                    min_distance = dist
+                    closest_metin = (x, y)
+
+        if closest_metin:
+            x, y = closest_metin
+            print(
+                f"[+] Nearest Metin found at ({x}, {y}) with a distance of {min_distance:.2f}px"
+            )
+            osk_tap_keyboard("z")
+            pyautogui.moveTo(x, y, duration=0.05)
+            click_at(x, y)
+            return True
+
+        print(f"[{attempt+1}/{max_attempts}] No metin found. Moving character...")
+        if check_forward:
+            osk_tap_keyboard("z")
+            check_forward = not check_forward
+            move_forward(1)
+        else:
+            osk_tap_keyboard("z")
+            check_forward = not check_forward
+            move_backward(1)
+
+    print(f"No Metines were found after {max_attempts} attempts.")
     return False
 
 
@@ -276,27 +352,128 @@ def move_backward(duration):
     osk_hold_keyboard("s", duration)
 
 
+# === METIN PATHS ===
+def bahia_nephrit_1(step, first_cicle, idle):
+    windows = gw.getWindowsWithTitle(default_window)
+    if not windows:
+        print(f"Window '{default_window}' not found")
+        return "error"
+
+    win = windows[0]
+    bbox = (win.left, win.top, win.right, win.bottom)
+
+    screenshot = ImageGrab.grab(bbox=bbox)
+    data = pytesseract.image_to_data(screenshot, output_type=pytesseract.Output.DICT)
+
+    # Detect Metin UI
+    metin_ui_detected = False
+    for i, word in enumerate(data["text"]):
+        if "metin" in word.lower():
+            x = win.left + data["left"][i] + data["width"][i] // 2 + 30
+            y = win.top + data["top"][i] + data["height"][i] // 2 + 30
+            if 880 < x < 920 and 80 < y < 95:
+                metin_ui_detected = True
+                break
+    if metin_ui_detected:
+        print("⚠️ Ya estás destruyendo un metin (detectado en la UI).")
+        return "attacking"
+
+    if not first_cicle and not idle:
+        osk_tap_keyboard("z")
+        match step:
+            case 0:
+                print("Case 0")
+                x, y = 450, 70
+                pyautogui.moveTo(x, y, duration=0.05)
+                click_at(x, y)
+                time.sleep(3)
+            case 1:
+                print("Case 1")
+                x, y = 1800, 550
+                pyautogui.moveTo(x, y, duration=0.05)
+                click_at(x, y)
+                time.sleep(3)
+            case 2:
+                print("Case 2")
+                x, y = 660, 50
+                pyautogui.moveTo(x, y, duration=0.05)
+                click_at(x, y)
+                time.sleep(3)
+            case 3:
+                print("Case 3")
+                move_backward(3)
+
+    # Recalculate image for new metins
+    screenshot = ImageGrab.grab(bbox=bbox)
+    data = pytesseract.image_to_data(screenshot, output_type=pytesseract.Output.DICT)
+
+    closest_metin, min_distance = get_closest_metin(win, data)
+
+    if closest_metin:
+        x, y = closest_metin
+        print(f"[+] Nearest Metin found at ({x}, {y}). Distance: {min_distance}")
+        pyautogui.moveTo(x, y, duration=0.05)
+        click_at(x, y)
+        time.sleep(2)  # Give time to start attacking metin
+        return "found"
+
+    print("No metin found. Idle character.")
+    return "idle"
+
+
+def get_closest_metin(win, data):
+    player_x, player_y = 960, 530  # Screen center
+    closest_metin = None
+    min_distance = float("inf")
+
+    for i, word in enumerate(data["text"]):
+        if "metin" in word.lower():
+            x = win.left + data["left"][i] + data["width"][i] // 2 + 30
+            y = win.top + data["top"][i] + data["height"][i] + 30
+            dist = math.sqrt((x - player_x) ** 2 + (y - player_y) ** 2)
+            if dist < min_distance:
+                min_distance = dist
+                closest_metin = [x, y]
+
+    return closest_metin, min_distance
+
+
 # === MAIN ===
 if __name__ == "__main__":
+    # Character must be at (130, 480), camera full top view
     first_skills = True
     first_metin = True
     time.sleep(2)
     focus_window()
 
     skills = ["f1", "f2"]
+    path_step = 0
+    first_cicle = True
+    idle = False
 
     # Chronometers
     skill_timer = time.time()
     sell_timer = time.time()
 
+
+
     while True:
         print("=== While loop X ===")
-        skill_timer, first_skills = check_timer(
-            skill_timer, skills, 60 * 19, True, first_skills
-        )
-        find_and_click_metin()
+        skill_timer, first_skills = check_timer(skill_timer, skills, 60 * 19, True, first_skills)
+        result = bahia_nephrit_1(path_step, first_cicle, idle)
+        
+        # Solo avanzar de paso si hubo movimiento efectivo
+        if result == "found":
+            if not first_cicle:
+                path_step = (path_step + 1) % 4
+            first_cicle = False
+
+        if result == "idle":
+            idle = True
+        else:
+            idle = False
+
         time.sleep(0.5)
 
         sell_timer = sell_items(sell_timer, 60 * 3)
-
-        time.sleep(5.03)
+        time.sleep(3.03)
