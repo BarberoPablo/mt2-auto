@@ -75,14 +75,14 @@ def focus_window(title=default_window):
     run_clicker("focus", title)
 
 
-def click_at(x, y, title=None):
+def click_at(x, y, title=default_window):
     args = ["click", x, y]
     if title:
         args.append(title)
     run_clicker(*args)
 
 
-def right_click_at(x, y, title=None):
+def right_click_at(x, y, title=default_window):
     args = ["click_right", x, y]
     if title:
         args.append(title)
@@ -143,19 +143,21 @@ def find_and_click_metin(title=default_window):
                 y = win.top + data["top"][i] + data["height"][i] + 30
                 print(f"[+] 'Metin' encontrado en ({x}, {y})")
                 osk_tap_keyboard("z")
-                pyautogui.moveTo(x, y, duration=0.1)
-                click_at(x, y, title)
+                pyautogui.moveTo(x, y, duration=0.05)
+                click_at(x, y)
                 return True
 
         # --- 3️⃣ Si no encontró nada, rotar y reintentar ---
         print(f"[{attempt+1}/{max_attempts}] No se encontró metin. Rotando cámara...")
         if check_forward:
+            osk_tap_keyboard("z")
             check_forward = not check_forward
             move_forward(1)
         else:
+            osk_tap_keyboard("z")
             check_forward = not check_forward
-            rotate_camera(180)
-            move_forward(2.5)
+            #rotate_camera(180)
+            move_backward(1)
 
     print(f"❌ No se encontró ningún 'metin' tras {max_attempts} intentos.")
     return False
@@ -166,13 +168,23 @@ def move_mouse_to(x, y, duration=0.05):
     time.sleep(0.05)
 
 
-def sell_items(title=default_window):
-    print("[+] Selling items...")
-    pyautogui.moveTo(1820, 860, duration=0.1)  # Select items
-    click_at(1820, 860, title)
-    time.sleep(round(random.uniform(0.10, 0.15), 2))
-    pyautogui.moveTo(1820, 885, duration=0.1)  # Sell items
-    click_at(1820, 860, title)
+def sell_items(timer, lapse):
+    now = time.time()
+    elapsed = now - timer
+    if elapsed / lapse >= 0.9:
+        osk_tap_keyboard("f4")
+        time.sleep(1)
+        print("[+] Selling items...")
+        pyautogui.moveTo(1820, 885, 0.05)  # Sell items
+        # pyautogui.moveTo(1820, 860, 0.05)  # Select items
+        click_at(1820, 860)
+        time.sleep(round(random.uniform(0.05, 0.1), 2))
+        # pyautogui.moveTo(1820, 885, 0.05)  # Sell items
+        click_at(1820, 860)
+        osk_tap_keyboard("f4")
+        timer = now
+
+    return timer
 
 
 def get_key_coords(key, keys):
@@ -185,16 +197,16 @@ def osk_tap_keyboard(key):
         fn_x, fn_y = get_key_coords("fn", osk_keys)
         move_mouse_to(fn_x, fn_y)
         osk_click_mouse()
-        time.sleep(0.1)
+        time.sleep(0.02)
         key_x, key_y = get_key_coords(key[-1], osk_keys)
         move_mouse_to(key_x, key_y)
         osk_click_mouse()
-        time.sleep(0.1)
+        time.sleep(0.02)
     else:
         x, y = get_key_coords(key, osk_keys)
         move_mouse_to(x, y)
         osk_click_mouse()
-        time.sleep(0.1)
+        time.sleep(0.02)
 
 
 def osk_hold_keyboard(key, duration):
@@ -259,6 +271,11 @@ def move_forward(duration):
     osk_hold_keyboard("w", duration)
 
 
+def move_backward(duration):
+    print(f"[+] move_backward: duration={duration:.2f}s")
+    osk_hold_keyboard("s", duration)
+
+
 # === MAIN ===
 if __name__ == "__main__":
     first_skills = True
@@ -275,9 +292,11 @@ if __name__ == "__main__":
     while True:
         print("=== While loop X ===")
         skill_timer, first_skills = check_timer(
-            skill_timer, skills, 2000, True, first_skills
+            skill_timer, skills, 60*19, True, first_skills
         )
         find_and_click_metin()
         time.sleep(0.5)
-        #sell_items()
+
+        sell_timer = sell_items(sell_timer, 60*3)
+
         time.sleep(5.03)
