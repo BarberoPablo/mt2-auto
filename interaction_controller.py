@@ -8,14 +8,27 @@ from pathlib import Path
 import random
 import keyboard
 import math
+import sys
+
 
 # === CONFIG ===
-pytesseract.pytesseract.tesseract_cmd = r"C:\Pablo\Programacion\metin2\metins\tesseract\tesseract.exe"
-clicker_exe = r"C:\Pablo\Programacion\metin2\metins\Interactions\bin\Release\net8.0\Interactions.exe"
+DEVICE = "notebook"  # "pc" or "notebook"
+BASE_DIR = None
+# Detects if it is executing from packaging (PyInstaller) or in development
+if getattr(sys, "frozen", False):
+    BASE_DIR = Path(sys._MEIPASS)  # PyInstaller
+else:
+    BASE_DIR = Path(__file__).resolve().parent  # Development (actual script path)
+
+
+# === Files Routes ===
+pytesseract.pytesseract.tesseract_cmd = str(BASE_DIR / "tesseract" / "tesseract.exe")
+clicker_exe = str(BASE_DIR / "Interactions" / "publish" / "Interactions.exe")
 default_window = "Elveron"
 
+
 # === Global Variables ===
-osk_keys = {
+osk_keys_pc = {
     "1": [1412, 971],
     "2": [1412 + 22, 971],
     "3": [1412 + 22 * 2, 971],
@@ -50,6 +63,55 @@ osk_keys = {
     "ctrl": [1368 + 22, 1060],
     "alt": [1368 + 22 * 3, 1060],
 }
+osk_keys_notebook = {
+    "1": [860, 660],
+    "2": [860 + 22, 660],
+    "3": [860 + 22 * 2, 660],
+    "4": [860 + 22 * 3, 660],
+    "q": [850, 682],
+    "w": [850 + 22, 682],
+    "e": [850 + 22 * 2, 682],
+    "r": [850 + 22 * 3, 682],
+    "t": [850 + 22 * 4, 682],
+    "y": [850 + 22 * 5, 682],
+    "u": [850 + 22 * 6, 682],
+    "i": [850 + 22 * 7, 994],
+    "o": [850 + 22 * 8, 994],
+    "p": [850 + 22 * 9, 994],
+    "a": [860, 705],
+    "s": [860 + 22, 705],
+    "d": [860 + 22 * 2, 705],
+    "f": [860 + 22 * 3, 705],
+    "g": [860 + 22 * 4, 705],
+    "h": [860 + 22 * 5, 705],
+    "j": [860 + 22 * 6, 705],
+    "k": [860 + 22 * 7, 705],
+    "l": [860 + 22 * 8, 705],
+    "z": [872, 728],
+    "x": [872 + 22, 728],
+    "c": [872 + 22 * 2, 728],
+    "v": [872 + 22 * 3, 728],
+    "b": [872 + 22 * 4, 728],
+    "n": [872 + 22 * 5, 728],
+    "m": [872 + 22 * 6, 728],
+    "fn": [816, 750],
+    "ctrl": [816 + 22, 750],
+    "alt": [816 + 22 * 3, 750],
+}
+osk_keys = osk_keys_pc if DEVICE == "pc" else osk_keys_notebook
+
+gautama_370_330_coords = {
+    "pc": {
+        0: (450, 70),
+        1: (1800, 550),
+        2: (660, 50),
+    },
+    "notebook": {
+        0: (485, 60),
+        1: (1340, 370),
+        2: (400, 60),
+    },
+}
 
 
 # === Click Functions ===
@@ -60,7 +122,9 @@ def run_clicker(
     if not exe.exists():
         print(f".exe not found: {exe}")
         return False
-    result = subprocess.run([str(exe), *map(str, args)], capture_output=True, text=True, shell=False)
+    result = subprocess.run(
+        [str(exe), *map(str, args)], capture_output=True, text=True, shell=False
+    )
     if result.stdout:
         print("stdout:", result.stdout.strip())
     if result.stderr:
@@ -196,7 +260,9 @@ def grab_items():
 
 
 def rotate_camera(angle):
-    duration = (angle / 360.0) * 3.99  # It takes around 4 seconds to perform a 360° rotation
+    duration = (
+        angle / 360.0
+    ) * 3.99  # It takes around 4 seconds to perform a 360° rotation
     print(f"[+] Rotating camera, angle={angle} => duration={duration:.2f}s")
     osk_hold_keyboard("q", duration)
 
@@ -240,21 +306,9 @@ def gautama_370_330(step, first_cicle, idle):
     if not first_cicle and not idle:
         osk_tap_keyboard("z")
         match step:
-            case 0:
-                print("Case 0, moving top left")
-                x, y = 450, 70
-                pyautogui.moveTo(x, y, duration=0.05)
-                click_at(x, y)
-                time.sleep(3)
-            case 1:
-                print("Case 1, moving right")
-                x, y = 1800, 550
-                pyautogui.moveTo(x, y, duration=0.05)
-                click_at(x, y)
-                time.sleep(3)
-            case 2:
-                print("Case 2, moving top left")
-                x, y = 660, 50
+            case 0 | 1 | 2:
+                x, y = coords[DEVICE][step]
+                print(f"Case {step}, moving to {x},{y}")
                 pyautogui.moveTo(x, y, duration=0.05)
                 click_at(x, y)
                 time.sleep(3)
@@ -341,7 +395,9 @@ if __name__ == "__main__":
     skill_timer = time.time()
     sell_timer = time.time()
     consumables_timer = time.time()
-    not_working_timer = time.time()  # For when the character is idle or attacking for too long
+    not_working_timer = (
+        time.time()
+    )  # For when the character is idle or attacking for too long
 
     while True:
         print("=== While loop ===")
@@ -353,7 +409,9 @@ if __name__ == "__main__":
             True,
             first_skills,
         )
-        consumables_timer, first_consumables = check_timer(consumables_timer, consumables, 60 * 3, 0.5, False, first_consumables)
+        consumables_timer, first_consumables = check_timer(
+            consumables_timer, consumables, 60 * 3, 0.5, False, first_consumables
+        )
         result = gautama_370_330(path_step, first_cicle, is_idle)
 
         # Solo avanzar de paso si hubo movimiento efectivo
@@ -365,13 +423,13 @@ if __name__ == "__main__":
                 first_cicle = False
                 not_working_timer = time.time()
             case "idle":
-                """ If is not idle it means that it is the first loop as idle -> reset not working timer
-                    Player found a metin -> "attacking" was returned multiple times and not_working_timer was acumulating time ->
-                        Pleyer moved and did not found metin -> "idle" starts with previous not_working_timer time. This should be reseted.
-                    "idle" time should is not being added to "attacking" time on not_working_timer. Configure is_bugged on "idle" and "attacking" for changes.
+                """If is not idle it means that it is the first loop as idle -> reset not working timer
+                Player found a metin -> "attacking" was returned multiple times and not_working_timer was acumulating time ->
+                    Pleyer moved and did not found metin -> "idle" starts with previous not_working_timer time. This should be reseted.
+                "idle" time should is not being added to "attacking" time on not_working_timer. Configure is_bugged on "idle" and "attacking" for changes.
                 """
-                if not is_idle:         
-                    not_working_timer = time.time() 
+                if not is_idle:
+                    not_working_timer = time.time()
 
                 is_idle = True
                 is_bugged = is_player_bugged(not_working_timer, 60)

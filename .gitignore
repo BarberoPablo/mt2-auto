@@ -9,6 +9,13 @@ env/
 ENV/
 .venv
 venv
+build/
+dist/
+Interactions/bin/
+Interactions/obj/
+Interactions/publish/
+*.spec
+
 
 # Tesseract OCR (too large to commit - users should install separately)
 tesseract/
