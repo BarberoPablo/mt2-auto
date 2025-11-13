@@ -10,9 +10,7 @@ import keyboard
 import math
 
 # === CONFIG ===
-pytesseract.pytesseract.tesseract_cmd = (
-    r"C:\Pablo\Programacion\metin2\metins\tesseract\tesseract.exe"
-)
+pytesseract.pytesseract.tesseract_cmd = r"C:\Pablo\Programacion\metin2\metins\tesseract\tesseract.exe"
 clicker_exe = r"C:\Pablo\Programacion\metin2\metins\Interactions\bin\Release\net8.0\Interactions.exe"
 default_window = "Elveron"
 
@@ -50,6 +48,7 @@ osk_keys = {
     "m": [1424 + 22 * 6, 1038],
     "fn": [1368, 1060],
     "ctrl": [1368 + 22, 1060],
+    "alt": [1368 + 22 * 3, 1060],
 }
 
 
@@ -61,9 +60,7 @@ def run_clicker(
     if not exe.exists():
         print(f"❌ No encontré el exe: {exe}")
         return False
-    result = subprocess.run(
-        [str(exe), *map(str, args)], capture_output=True, text=True, shell=False
-    )
+    result = subprocess.run([str(exe), *map(str, args)], capture_output=True, text=True, shell=False)
     if result.stdout:
         print("stdout:", result.stdout.strip())
     if result.stderr:
@@ -121,9 +118,7 @@ def find_and_click_metin():
 
     for attempt in range(max_attempts):
         screenshot = ImageGrab.grab(bbox=bbox)
-        data = pytesseract.image_to_data(
-            screenshot, output_type=pytesseract.Output.DICT
-        )
+        data = pytesseract.image_to_data(screenshot, output_type=pytesseract.Output.DICT)
 
         # --- 1️⃣ Buscar si ya hay un metin en zona de UI ---
         metin_ui_detected = False
@@ -182,9 +177,7 @@ def find_and_click_nearest_metin():
 
     for attempt in range(max_attempts):
         screenshot = ImageGrab.grab(bbox=bbox)
-        data = pytesseract.image_to_data(
-            screenshot, output_type=pytesseract.Output.DICT
-        )
+        data = pytesseract.image_to_data(screenshot, output_type=pytesseract.Output.DICT)
 
         # --- Metin UI detected
         metin_ui_detected = False
@@ -216,9 +209,7 @@ def find_and_click_nearest_metin():
 
         if closest_metin:
             x, y = closest_metin
-            print(
-                f"[+] Nearest Metin found at ({x}, {y}) with a distance of {min_distance:.2f}px"
-            )
+            print(f"[+] Nearest Metin found at ({x}, {y}) with a distance of {min_distance:.2f}px")
             osk_tap_keyboard("z")
             pyautogui.moveTo(x, y, duration=0.05)
             click_at(x, y)
@@ -360,7 +351,7 @@ def move_backward(duration):
 
 
 # === METIN PATHS ===
-def bahia_nephrit_1(step, first_cicle, idle):
+def gautama_370_330(step, first_cicle, idle):
     windows = gw.getWindowsWithTitle(default_window)
     if not windows:
         print(f"Window '{default_window}' not found")
@@ -408,7 +399,7 @@ def bahia_nephrit_1(step, first_cicle, idle):
                 time.sleep(3)
             case 3:
                 print("Case 3")
-                move_backward(3)
+                move_backward(2.5)
 
     # Recalculate image for new metins
     screenshot = ImageGrab.grab(bbox=bbox)
@@ -513,6 +504,30 @@ def get_closest_metin(win, data):
     return closest_metin, min_distance
 
 
+def is_player_bugged(timer, max_time):
+    now = time.time()
+    elapsed = now - timer
+    if elapsed > max_time:
+        print("Player is bugged.")
+        return True
+    return False
+
+
+def reset_player():
+    print("Using teleport item")
+    osk_tap_keyboard("alt")
+    osk_tap_keyboard("1")
+    first_metin = True
+    path_step = 0
+    first_cicle = True
+    is_idle = False
+    is_bugged = False
+    time.sleep(10)
+    print("Player teleported")
+    timer = time.time()
+    return first_metin, path_step, first_cicle, is_idle, is_bugged, timer
+
+
 # === MAIN ===
 if __name__ == "__main__":
     # Character must be at (130, 480), camera full top view
@@ -526,12 +541,14 @@ if __name__ == "__main__":
     consumables = ["1", "2", "3", "4", "f3"]
     path_step = 0
     first_cicle = True
-    idle = False
+    is_idle = False
+    is_bugged = False
 
     # Chronometers
     skill_timer = time.time()
     sell_timer = time.time()
     consumables_timer = time.time()
+    not_working_timer = time.time()  # For when the character is idle or attacking for too long
 
     while True:
         print("=== While loop X ===")
@@ -543,23 +560,53 @@ if __name__ == "__main__":
             True,
             first_skills,
         )
-        consumables_timer, first_consumables = check_timer(
-            consumables_timer, consumables, 60 * 3, 0.5, False, first_consumables
-        )
-        result = bahia_nephrit_1(path_step, first_cicle, idle)
+        consumables_timer, first_consumables = check_timer(consumables_timer, consumables, 60 * 3, 0.5, False, first_consumables)
+        result = gautama_370_330(path_step, first_cicle, is_idle)
 
         # Solo avanzar de paso si hubo movimiento efectivo
-        if result == "found":
-            if not first_cicle:
-                path_step = (path_step + 1) % 4
-            first_cicle = False
+        match result:
+            case "found":
+                is_idle = False
+                if not first_cicle:
+                    path_step = (path_step + 1) % 4
+                first_cicle = False
+                not_working_timer = time.time()
+            case "idle":
+                """ If is not idle it means that it is the first loop as idle -> reset not working timer
+                    Player found a metin -> "attacking" was returned multiple times and not_working_timer was acumulating time ->
+                        Pleyer moved and did not found metin -> "idle" starts with previous not_working_timer time. This should be reseted.
+                    "idle" time should is not being added to "attacking" time on not_working_timer. Configure is_bugged on "idle" and "attacking" for changes.
+                """
+                if not is_idle:         
+                    not_working_timer = time.time() 
 
-        if result == "idle":
-            idle = True
-        else:
-            idle = False
-
-        time.sleep(0.5)
+                is_idle = True
+                is_bugged = is_player_bugged(not_working_timer, 60)
+                if is_bugged:
+                    (
+                        first_metin,
+                        path_step,
+                        first_cicle,
+                        is_idle,
+                        is_bugged,
+                        not_working_timer,
+                    ) = reset_player()
+            case "attacking":
+                is_idle = False
+                is_bugged = is_player_bugged(not_working_timer, 60)
+                if is_bugged:
+                    (
+                        first_metin,
+                        path_step,
+                        first_cicle,
+                        is_idle,
+                        is_bugged,
+                        not_working_timer,
+                    ) = reset_player()
+            case "error":
+                is_idle = False
+                not_working_timer = time.time()
+                print("Error")
 
         sell_timer = sell_items(sell_timer, 60 * 3)
         time.sleep(3.03)
