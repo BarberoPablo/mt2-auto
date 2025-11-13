@@ -291,7 +291,14 @@ def osk_hold_keyboard(key, duration):
     osk_hold_click_mouse(duration)
 
 
-def check_timer(timer, keys, lapse, is_skill=False, first_run=False):
+def check_timer(
+    timer,
+    keys,
+    lapse,
+    delay,
+    is_skill=False,
+    first_run=False,
+):
     now = time.time()
     elapsed = now - timer
     if (elapsed / lapse >= 0.9) | first_run:
@@ -303,7 +310,7 @@ def check_timer(timer, keys, lapse, is_skill=False, first_run=False):
         for key in keys:
             # unmount
             osk_tap_keyboard(key)
-            time.sleep(3)
+            time.sleep(delay)
             # mount
         if is_skill:
             horse_interaction()
@@ -421,6 +428,74 @@ def bahia_nephrit_1(step, first_cicle, idle):
     return "idle"
 
 
+def bahia_nephrit_2(step, first_cicle, idle):
+    windows = gw.getWindowsWithTitle(default_window)
+    if not windows:
+        print(f"Window '{default_window}' not found")
+        return "error"
+
+    win = windows[0]
+    bbox = (win.left, win.top, win.right, win.bottom)
+
+    screenshot = ImageGrab.grab(bbox=bbox)
+    data = pytesseract.image_to_data(screenshot, output_type=pytesseract.Output.DICT)
+
+    # Detect Metin UI
+    metin_ui_detected = False
+    for i, word in enumerate(data["text"]):
+        if "metin" in word.lower():
+            x = win.left + data["left"][i] + data["width"][i] // 2 + 30
+            y = win.top + data["top"][i] + data["height"][i] // 2 + 30
+            if 880 < x < 920 and 80 < y < 95:
+                metin_ui_detected = True
+                break
+    if metin_ui_detected:
+        print("⚠️ Ya estás destruyendo un metin (detectado en la UI).")
+        return "attacking"
+
+    if not first_cicle and not idle:
+        osk_tap_keyboard("z")
+        match step:
+            case 0:
+                print("Case 0")
+                x, y = 450, 10
+                pyautogui.moveTo(x, y, duration=0.05)
+                click_at(x, y)
+                time.sleep(3)
+            case 1:
+                print("Case 1")
+                x, y = 1800, 550
+                pyautogui.moveTo(x, y, duration=0.05)
+                click_at(x, y)
+                time.sleep(3)
+            case 2:
+                print("Case 2")
+                x, y = 460, 50
+                pyautogui.moveTo(x, y, duration=0.05)
+                click_at(x, y)
+                time.sleep(3)
+            case 3:
+                print("Case 3")
+                move_backward(3)
+
+    # Recalculate image for new metins
+    screenshot = ImageGrab.grab(bbox=bbox)
+    data = pytesseract.image_to_data(screenshot, output_type=pytesseract.Output.DICT)
+
+    closest_metin, min_distance = get_closest_metin(win, data)
+
+    if closest_metin:
+        x, y = closest_metin
+        print(f"[+] Nearest Metin found at ({x}, {y}). Distance: {min_distance}")
+        pyautogui.moveTo(x, y, duration=0.05)
+        click_at(x, y)
+        time.sleep(2)  # Give time to start attacking metin
+        return "found"
+
+    print("No metin found. Idle character.")
+    return "idle"
+
+
 def get_closest_metin(win, data):
     player_x, player_y = 960, 530  # Screen center
     closest_metin = None
@@ -443,10 +518,12 @@ if __name__ == "__main__":
     # Character must be at (130, 480), camera full top view
     first_skills = True
     first_metin = True
+    first_consumables = True
     time.sleep(2)
     focus_window()
 
     skills = ["f1", "f2"]
+    consumables = ["1", "2", "3", "4", "f3"]
     path_step = 0
     first_cicle = True
     idle = False
@@ -454,14 +531,23 @@ if __name__ == "__main__":
     # Chronometers
     skill_timer = time.time()
     sell_timer = time.time()
-
-
+    consumables_timer = time.time()
 
     while True:
         print("=== While loop X ===")
-        skill_timer, first_skills = check_timer(skill_timer, skills, 60 * 19, True, first_skills)
+        skill_timer, first_skills = check_timer(
+            skill_timer,
+            skills,
+            60 * 19,
+            3,
+            True,
+            first_skills,
+        )
+        consumables_timer, first_consumables = check_timer(
+            consumables_timer, consumables, 60 * 3, 0.5, False, first_consumables
+        )
         result = bahia_nephrit_1(path_step, first_cicle, idle)
-        
+
         # Solo avanzar de paso si hubo movimiento efectivo
         if result == "found":
             if not first_cicle:
