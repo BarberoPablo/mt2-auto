@@ -61,7 +61,7 @@ class Program
     static void FocusWindow(string title)
     {
         IntPtr hWnd = FindWindow(null, title);
-        if (hWnd == IntPtr.Zero) { Console.WriteLine($"No se encontró la ventana '{title}'"); return; }
+        if (hWnd == IntPtr.Zero) { Console.WriteLine($"Window not found: '{title}'"); return; }
 
         ShowWindow(hWnd, SW_RESTORE);
         uint winThread = GetWindowThreadProcessId(hWnd, out _);
@@ -74,13 +74,13 @@ class Program
         Thread.Sleep(100);
         if (attached) AttachThreadInput(curThread, winThread, false);
 
-        Console.WriteLine($"Ventana '{title}' enfocada.");
+        Console.WriteLine($"Window focused: '{title}'");
     }
 
     static void ClickInWindow(string title, int screenX, int screenY)
     {
         IntPtr hWnd = FindWindow(null, title);
-        if (hWnd == IntPtr.Zero) { Console.WriteLine($"No se encontró la ventana '{title}'"); return; }
+        if (hWnd == IntPtr.Zero) { Console.WriteLine($"Window not found: '{title}'"); return; }
 
         POINT pt = new POINT { X = screenX, Y = screenY };
         ScreenToClient(hWnd, ref pt);
@@ -90,13 +90,13 @@ class Program
         Thread.Sleep(10);
         PostMessage(hWnd, WM_LBUTTONUP, IntPtr.Zero, lParam);
 
-        Console.WriteLine($"Click enviado en ({screenX},{screenY}) en '{title}'.");
+        Console.WriteLine($"Clicked at: ({screenX},{screenY}) in '{title}'");
     }
 
     static void ClickRightInWindow(string title, int screenX, int screenY)
     {
         IntPtr hWnd = FindWindow(null, title);
-        if (hWnd == IntPtr.Zero) { Console.WriteLine($"No se encontró la ventana '{title}'"); return; }
+        if (hWnd == IntPtr.Zero) { Console.WriteLine($"Window not found: '{title}'"); return; }
 
         POINT pt = new POINT { X = screenX, Y = screenY };
         ScreenToClient(hWnd, ref pt);
@@ -106,7 +106,7 @@ class Program
         Thread.Sleep(10);
         PostMessage(hWnd, WM_RBUTTONUP, IntPtr.Zero, lParam);
 
-        Console.WriteLine($"Click derecho enviado en ({screenX},{screenY}) en '{title}'.");
+        Console.WriteLine($"Right-clicked at: ({screenX},{screenY}) in '{title}'");
     }
 
     static void ClickCurrentPosition()
@@ -115,7 +115,7 @@ class Program
         inputs[0].type = INPUT_MOUSE; inputs[0].u.mi.dwFlags = MOUSEEVENTF_LEFTDOWN;
         inputs[1].type = INPUT_MOUSE; inputs[1].u.mi.dwFlags = MOUSEEVENTF_LEFTUP;
         SendInput((uint)inputs.Length, inputs, Marshal.SizeOf(typeof(INPUT)));
-        Console.WriteLine("Click en la posición actual del mouse.");
+        Console.WriteLine("Clicked at the current mouse position");
     }
 
     static void ClickMouseOSK()
@@ -134,7 +134,7 @@ class Program
         uint resultDown = SendInput(1, new INPUT[] { down }, Marshal.SizeOf(typeof(INPUT)));
         if (resultDown == 0)
         {
-            Console.WriteLine("Error al enviar el DOWN del click.");
+            Console.WriteLine("Error sending OSK DOWN click");
             return;
         }
 
@@ -143,9 +143,9 @@ class Program
         // Send UP event
         uint resultUp = SendInput(1, new INPUT[] { up }, Marshal.SizeOf(typeof(INPUT)));
         if (resultUp == 0)
-            Console.WriteLine("Error al enviar el UP del click.");
+            Console.WriteLine("Error sending OSK UP click");
         else
-            Console.WriteLine("Click completo en la posición actual del OSK.");
+            Console.WriteLine("Successfull OSK click");
     }
 
     static void HoldClickMouseOSK(double durationSec)
@@ -159,14 +159,14 @@ class Program
         uint resultDown = SendInput(1, new INPUT[] { down }, Marshal.SizeOf(typeof(INPUT)));
         if (resultDown == 0)
         {
-            Console.WriteLine("Error al enviar el DOWN del click.");
+            Console.WriteLine("Error sending OSK DOWN click");
             return;
         }
 
         // Espera en ms (convierte double -> int ms)
         int ms = (int)(durationSec * 1000);
         if (ms < 1) ms = 1;
-        Console.WriteLine($"Hold OSK mouse for {durationSec:F2}s ({ms}ms)");
+        Console.WriteLine($"Holding OSK mouse for {durationSec:F2}s ({ms}ms)");
         Thread.Sleep(ms);
 
         // UP Event
@@ -177,9 +177,9 @@ class Program
         // Send UP event
         uint resultUp = SendInput(1, new INPUT[] { up }, Marshal.SizeOf(typeof(INPUT)));
         if (resultUp == 0)
-            Console.WriteLine("Error al enviar el UP del click.");
+            Console.WriteLine("Error sending OSK UP click");
         else
-            Console.WriteLine("Click completo en la posición actual del OSK.");
+            Console.WriteLine("Successfull OSK hold-click");
     }
 
 
@@ -196,15 +196,15 @@ class Program
                 FocusWindow(title);
                 break;
             case "click":
-                if (args.Length < 3) { Console.WriteLine("Uso: click <x> <y> [window_title]"); return; }
-                if (!int.TryParse(args[1], out int x) || !int.TryParse(args[2], out int y)) { Console.WriteLine("Coordenadas inválidas."); return; }
+                if (args.Length < 3) { Console.WriteLine("Missing args"); return; }
+                if (!int.TryParse(args[1], out int x) || !int.TryParse(args[2], out int y)) { Console.WriteLine("Invalid coords."); return; }
                 string clickTitle = args.Length >= 4 ? args[3] : null;
                 if (clickTitle != null) ClickInWindow(clickTitle, x, y);
                 else ClickCurrentPosition();
                 break;
             case "click_right":
-                if (args.Length < 3) { Console.WriteLine("Uso: click_right <x> <y> [window_title]"); return; }
-                if (!int.TryParse(args[1], out int rx) || !int.TryParse(args[2], out int ry)) { Console.WriteLine("Coordenadas inválidas."); return; }
+                if (args.Length < 3) { Console.WriteLine("Missing args"); return; }
+                if (!int.TryParse(args[1], out int rx) || !int.TryParse(args[2], out int ry)) { Console.WriteLine("Invalid coords."); return; }
                 string rightTitle = args.Length >= 4 ? args[3] : null;
                 if (rightTitle != null) ClickRightInWindow(rightTitle, rx, ry);
                 else
@@ -213,23 +213,23 @@ class Program
                     inputs[0].type = INPUT_MOUSE; inputs[0].u.mi.dwFlags = MOUSEEVENTF_RIGHTDOWN;
                     inputs[1].type = INPUT_MOUSE; inputs[1].u.mi.dwFlags = MOUSEEVENTF_RIGHTUP;
                     SendInput((uint)inputs.Length, inputs, Marshal.SizeOf(typeof(INPUT)));
-                    Console.WriteLine("Click derecho en la posición actual del mouse.");
+                    Console.WriteLine("not rightTitle: Right click on mouse position");
                 }
                 break;
             case "osk_click":
                 ClickMouseOSK();
                 break;
             case "osk_hold_click":
-                if (args.Length < 2) { Console.WriteLine("Uso: osk_hold_click <seconds>"); return; }
+                if (args.Length < 2) { Console.WriteLine("Missing args"); return; }
                 if (!double.TryParse(args[1], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double durationSec) || durationSec <= 0)
                     {
-                        Console.WriteLine("Valor inválido para segundos.");
+                        Console.WriteLine("Invalid value for second argument");
                         return;
                     }
                 HoldClickMouseOSK(durationSec);
                 break;
             default:
-                Console.WriteLine($"Comando desconocido: {command}");
+                Console.WriteLine($"UNKNOWN COMMAND: {command}");
                 break;
         }
     }
