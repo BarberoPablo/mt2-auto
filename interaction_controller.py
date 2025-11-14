@@ -113,6 +113,21 @@ gautama_370_330_coords = {
     },
 }
 
+metin_ui_coords = {
+    "pc": {
+        "min_x": 880,
+        "max_x": 920,
+        "min_y": 80,
+        "max_y": 95,
+    },
+    "notebook": {
+        "min_x": 579,
+        "max_x": 660,
+        "min_y": 55,
+        "max_y": 70,
+    },
+}
+
 
 # === Click Functions ===
 def run_clicker(
@@ -296,7 +311,8 @@ def gautama_370_330(step, first_cicle, idle):
         if "metin" in word.lower():
             x = win.left + data["left"][i] + data["width"][i] // 2 + 30
             y = win.top + data["top"][i] + data["height"][i] // 2 + 30
-            if 880 < x < 920 and 80 < y < 95:
+            ui = metin_ui_coords[DEVICE]
+            if ui["min_x"] < x < ui["max_x"] and ui["min_y"] < y < ui["max_y"]:
                 metin_ui_detected = True
                 break
     if metin_ui_detected:
@@ -307,7 +323,7 @@ def gautama_370_330(step, first_cicle, idle):
         osk_tap_keyboard("z")
         match step:
             case 0 | 1 | 2:
-                x, y = coords[DEVICE][step]
+                x, y = gautama_370_330_coords[DEVICE][step]
                 print(f"Case {step}, moving to {x},{y}")
                 pyautogui.moveTo(x, y, duration=0.05)
                 click_at(x, y)
