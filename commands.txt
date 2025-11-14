@@ -14,8 +14,8 @@ Steps to generate global .exe file:
     dotnet publish -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o ./publish
   2- Update Python and .exe:
     cd C:\Pablo\Programacion\metin2\metins
-    notebook name: pyinstaller --noconfirm --onefile --add-data "tesseract;tesseract" --add-data "Interactions\publish;Interactions\publish" --hidden-import pytesseract --hidden-import PIL --hidden-import pygetwindow --name interaction_controller_notebook_v03 interaction_controller.py
-    pc name: pyinstaller --noconfirm --onefile --add-data "tesseract;tesseract" --add-data "Interactions\publish;Interactions\publish" --hidden-import pytesseract --hidden-import PIL --hidden-import pygetwindow --name interaction_controller_pc_v03 interaction_controller.py
+    notebook name: pyinstaller --noconfirm --onefile --add-data "tesseract;tesseract" --add-data "Interactions\publish;Interactions\publish" --hidden-import pytesseract --hidden-import PIL --hidden-import pygetwindow --name interaction_controller_notebook_v04 interaction_controller.py
+    pc name: pyinstaller --noconfirm --onefile --add-data "tesseract;tesseract" --add-data "Interactions\publish;Interactions\publish" --hidden-import pytesseract --hidden-import PIL --hidden-import pygetwindow --name interaction_controller_pc_v04 interaction_controller.py
     
   3- New .exe generated at dist\interaction_controller.exe
 

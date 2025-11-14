@@ -75,9 +75,9 @@ osk_keys_notebook = {
     "t": [850 + 22 * 4, 682],
     "y": [850 + 22 * 5, 682],
     "u": [850 + 22 * 6, 682],
-    "i": [850 + 22 * 7, 994],
-    "o": [850 + 22 * 8, 994],
-    "p": [850 + 22 * 9, 994],
+    "i": [850 + 22 * 7, 682],
+    "o": [850 + 22 * 8, 682],
+    "p": [850 + 22 * 9, 682],
     "a": [860, 705],
     "s": [860 + 22, 705],
     "d": [860 + 22 * 2, 705],
@@ -192,31 +192,6 @@ def osk_hold_click_mouse(duration):
         print("[-] Error sending OSK click.")
 
 
-# === Generic Functions ===
-def move_mouse_to(x, y, duration=0.05):
-    pyautogui.moveTo(x, y, duration=duration)
-    time.sleep(0.05)
-
-
-def sell_items(timer, lapse):
-    now = time.time()
-    elapsed = now - timer
-    if elapsed / lapse >= 0.9:
-        osk_tap_keyboard("f4")
-        time.sleep(1)
-        print("[+] Items sold.")
-        x, y = sell_items_coords[DEVICE]["x"], sell_items_coords[DEVICE]["y"]
-        pyautogui.moveTo(x, y, 0.05)
-        click_at(x, y)
-        time.sleep(round(random.uniform(0.05, 0.1), 2))
-        click_at(x, y)
-        osk_tap_keyboard("f4")
-        osk_tap_keyboard("i")
-        timer = now
-
-    return timer
-
-
 def get_key_coords(key, keys):
     return keys[key.lower()]
 
@@ -243,6 +218,31 @@ def osk_hold_keyboard(key, duration):
     x, y = get_key_coords(key, osk_keys)
     move_mouse_to(x, y)
     osk_hold_click_mouse(duration)
+
+
+# === Generic Functions ===
+def move_mouse_to(x, y, duration=0.05):
+    pyautogui.moveTo(x, y, duration=duration)
+    time.sleep(0.05)
+
+
+def sell_items(timer, lapse):
+    now = time.time()
+    elapsed = now - timer
+    if elapsed / lapse >= 0.9:
+        osk_tap_keyboard("f4")
+        time.sleep(1)
+        print("[+] Items sold.")
+        x, y = sell_items_coords[DEVICE]["x"], sell_items_coords[DEVICE]["y"]
+        pyautogui.moveTo(x, y, 0.05)
+        click_at(x, y)
+        time.sleep(round(random.uniform(0.05, 0.1), 2))
+        click_at(x, y)
+        osk_tap_keyboard("f4")
+        osk_tap_keyboard("i")
+        timer = now
+
+    return timer
 
 
 def check_timer(
