@@ -12,7 +12,7 @@ import sys
 
 
 # === CONFIG ===
-DEVICE = "notebook"  # "pc" or "notebook"
+DEVICE = "notebook"  # "pc 1920x1080" or "notebook 1360x768"
 BASE_DIR = None
 # Detects if it is executing from packaging (PyInstaller) or in development
 if getattr(sys, "frozen", False):
@@ -115,16 +115,27 @@ gautama_370_330_coords = {
 
 metin_ui_coords = {
     "pc": {
-        "min_x": 880,
-        "max_x": 920,
-        "min_y": 80,
-        "max_y": 95,
+        "min_x": 850,
+        "max_x": 890,
+        "min_y": 45,
+        "max_y": 65,
     },
     "notebook": {
         "min_x": 579,
         "max_x": 660,
         "min_y": 55,
         "max_y": 70,
+    },
+}
+
+sell_items_coords = {
+    "pc": {
+        "x": 1820,
+        "y": 860,
+    },
+    "notebook": {
+        "x": 1060,
+        "y": 342,
     },
 }
 
@@ -194,12 +205,11 @@ def sell_items(timer, lapse):
         osk_tap_keyboard("f4")
         time.sleep(1)
         print("[+] Items sold.")
-        pyautogui.moveTo(1820, 885, 0.05)  # Sell items
-        # pyautogui.moveTo(1820, 860, 0.05)  # Select items
-        click_at(1820, 860)
+        x, y = sell_items_coords[DEVICE]["x"], sell_items_coords[DEVICE]["y"]
+        pyautogui.moveTo(x, y, 0.05)
+        click_at(x, y)
         time.sleep(round(random.uniform(0.05, 0.1), 2))
-        # pyautogui.moveTo(1820, 885, 0.05)  # Sell items
-        click_at(1820, 860)
+        click_at(x, y)
         osk_tap_keyboard("f4")
         osk_tap_keyboard("i")
         timer = now
@@ -309,14 +319,15 @@ def gautama_370_330(step, first_cicle, idle):
     metin_ui_detected = False
     for i, word in enumerate(data["text"]):
         if "metin" in word.lower():
-            x = win.left + data["left"][i] + data["width"][i] // 2 + 30
-            y = win.top + data["top"][i] + data["height"][i] // 2 + 30
+            x = win.left + data["left"][i] + data["width"][i] // 2
+            y = win.top + data["top"][i] + data["height"][i] // 2
             ui = metin_ui_coords[DEVICE]
             if ui["min_x"] < x < ui["max_x"] and ui["min_y"] < y < ui["max_y"]:
                 metin_ui_detected = True
                 break
+
     if metin_ui_detected:
-        print("[attacking] Metin UI detected")
+        print("[attacking] Metin UI detected at ({x}, {y})")
         return "attacking"
 
     if not first_cicle and not idle:
@@ -340,9 +351,10 @@ def gautama_370_330(step, first_cicle, idle):
 
     if closest_metin:
         x, y = closest_metin
+        space = 30
         print(f"[found] Nearest Metin found at ({x}, {y}). Distance: {min_distance}")
-        pyautogui.moveTo(x, y, duration=0.05)
-        click_at(x, y)
+        pyautogui.moveTo(x, y + space, duration=0.05)
+        click_at(x, y + space)
         time.sleep(2)  # Give time to start attacking metin
         return "found"
 
@@ -357,8 +369,8 @@ def get_closest_metin(win, data):
 
     for i, word in enumerate(data["text"]):
         if "metin" in word.lower():
-            x = win.left + data["left"][i] + data["width"][i] // 2 + 30
-            y = win.top + data["top"][i] + data["height"][i] + 30
+            x = win.left + data["left"][i] + data["width"][i] // 2
+            y = win.top + data["top"][i] + data["height"][i] // 2
             dist = math.sqrt((x - player_x) ** 2 + (y - player_y) ** 2)
             if dist < min_distance:
                 min_distance = dist
