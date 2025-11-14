@@ -123,7 +123,7 @@ metin_ui_coords = {
     "notebook": {
         "min_x": 579,
         "max_x": 660,
-        "min_y": 55,
+        "min_y": 45,
         "max_y": 70,
     },
 }
@@ -327,7 +327,7 @@ def gautama_370_330(step, first_cicle, idle):
                 break
 
     if metin_ui_detected:
-        print("[attacking] Metin UI detected at ({x}, {y})")
+        print("[attacking] Healthbar UI detected at ({x}, {y})")
         return "attacking"
 
     if not first_cicle and not idle:
@@ -352,13 +352,13 @@ def gautama_370_330(step, first_cicle, idle):
     if closest_metin:
         x, y = closest_metin
         space = 30
-        print(f"[found] Nearest Metin found at ({x}, {y}). Distance: {min_distance}")
+        print(f"[found] Nearest objective found at ({x}, {y}). Distance: {min_distance}")
         pyautogui.moveTo(x, y + space, duration=0.05)
         click_at(x, y + space)
         time.sleep(2)  # Give time to start attacking metin
         return "found"
 
-    print("[idle] No metin found.")
+    print("[idle] No objective found.")
     return "idle"
 
 
